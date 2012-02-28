@@ -1,0 +1,6 @@
+veto_game.py
+----------------------------------
+A simulation of a novel card game. A full description of the card game is
+yet to come. I aspire to make this game internet enabled eventually.
+
+Right now the game contains a working variation on blackjack.
