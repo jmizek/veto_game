@@ -42,10 +42,13 @@ class Game:
         self.dealer=0;
         self.common=[000,000,000,000,000] #flop flop flop turn river
         self.phase='flop'
-        self.active=[False,False,False,False,False]
+        self.activeCards=[False,False,False,False,False]
         #T T T F F => phase==flop
         #F F F T F => phase==turn
         #F F F F T => phase==river
+        self.resetActiveGames()
+    def resetActiveGames(self):
+        self.activeGames=['Holdem High','Holdem Low','BlackJack','LowBall']
 
 # deck is a class consisting of a list of 52 cards,
 #  each of which is the value of a card per above,
@@ -87,15 +90,25 @@ class Player:
         for i in range(len(self.hits)):
             self.hits[i]=self.hits[i] or hitList[i]
     def getBJTotal(self):
-        aces=0
+        hasAce=False
         total=[0]
         for i in range(len(self.cards)):
             if value(self.cards[i])==1: #if ace
-                aces+=1
+                hasAce=True
             total[0]+=min(value(self.cards[i]),10)
-        while aces>0 and max(total) <= 11:
+        if hasAce and max(total) <= 11:
             total.append(max(total)+10)
-            aces-=1
+        if min(total)>21: #if bust in blackjack
+            total=[0] #set to lowest value
+        return total
+    def getLBTotal(self):
+        subtotal=0
+        total = [len(self.cards)]
+        for i in range(len(self.cards)):
+            subtotal+=min(value(self.cards[i]),10)
+        if subtotal>30: #if bust in lowball
+            total[0]=0 #set number of cards to lowest value
+        total.append(subtotal) #update total to reflect changes
         return total
 
 # begin actual code
@@ -130,14 +143,14 @@ while True:
         #set active cards
         if 'flop' in game.phase:
             deck.draw() #if on flop, burn another card
-            game.active=[True, True, True, False, False]
+            game.activeCards=[True, True, True, False, False]
         elif 'turn' in game.phase:
-            game.active=[False, False, False, True, False]
+            game.activeCards=[False, False, False, True, False]
         else: #river
-            game.active=[False, False, False, False, True]
+            game.activeCards=[False, False, False, False, True]
         #draw active cards
-        for i in range(len(game.active)):
-            if game.active[i]:
+        for i in range(len(game.activeCards)):
+            if game.activeCards[i]:
                 game.common[i]=deck.draw()
         #get hits
         for i in range(len(player)):
@@ -154,22 +167,28 @@ while True:
                 hits=input(' enter 1 to hit that card: ')
                 player[i].setHits([False, False, False, False, '1' in hits])
         #reveal common card(s)
-        for i in range(len(game.active)):
-            if game.active[i]:
+        for i in range(len(game.activeCards)):
+            if game.activeCards[i]:
                 print(game.phase,'card is',cardName(game.common[i]))
         #add hit cards to hands
         for i in range(len(player)):
-            for j in range(len(game.active)):
-                if game.active[j] and player[i].hits[j]:
+            for j in range(len(game.activeCards)):
+                if game.activeCards[j] and player[i].hits[j]:
                     player[i].addCard(game.common[j])
-            bjtotal=player[i].getBJTotal()
-            #show total
-            if len(bjtotal)==1:
-                print(player[i].name,'your BlackJack total is',bjtotal)
-            else:
-                print(player[i].name,'your BlackJack totals are',bjtotal)
-            if min(bjtotal)>21:
+            #get totals
+            bjTotal=player[i].getBJTotal()
+            lbTotal=player[i].getLBTotal()
+            #show blackjack totals
+            if min(bjTotal)==0:
                 print(player[i].name,'busts at BlackJack!')
+            else: #player does not bust
+                print(player[i].name,'your BlackJack total(s):',bjTotal)
+            #show lowball totals
+            if min(lbTotal)==0:
+                print(player[i].name,'busts at LowBall!')
+            else: #player does not bust
+                print(player[i].name,'your LowBall total:',lbTotal)
+            
         #change phase
         if 'flop' in game.phase:
             game.phase = 'turn'
@@ -178,4 +197,37 @@ while True:
         else: #river
             game.phase = 'done'
     #all finished with round
-    print('round is over!')
+    print('  Time to see who won')
+    #declare winner
+    if 'Holdem High' in game.activeGames:
+        print('Holdem High not yet programmed')
+    if 'Holdem Low' in game.activeGames:
+        print('Holdem Low not yet programmed')
+    if 'BlackJack' in game.activeGames:
+        bjWinnerName=['']
+        bjWinnerTotal=0
+        for i in range(len(player)):
+            bjTotal=player[i].getBJTotal()
+            if max(bjTotal)>bjWinnerTotal: #has highest score outright, which inherently has to be a non-bust
+                bjWinnerTotal = max(bjTotal)
+                bjWinnerName = [player[i].name]
+            elif max(bjTotal)>0 and max(bjTotal)==bjWinnerTotal: #no bust and tied with winner
+                bjWinnerName.append(player[i].name)
+        print(bjWinnerName,'win(s) at BlackJack!')
+    if 'LowBall' in game.activeGames:
+        lbWinnerName=['']
+        lbWinnerTotals=[0,30]
+        for i in range(len(player)):
+            lbTotal=player[i].getLBTotal()
+            if lbTotal[0]>lbWinnerTotals[0]: #has most cards outright, which inherently has to be a non-bust
+                lbWinnerTotals = lbTotal #set both max number of cards and total for those cards
+                lbWinnerName = [player[i].name]
+            elif lbTotal[0]>0 and lbTotal[0]==lbWinnerTotals[0]: #no bust, same # of cards as winner
+                if lbTotal[1]<lbWinnerTotals[1]: #same number of cards but lower total
+                    lbWinnerTotals=lbTotal #still win
+                    lbWinnerName = [player[i].name] #overwrite all
+                elif lbTotal[1]==lbWinnerTotals[1]: #tie for total as well
+                    lbWinnerName.append(player[i].name)
+        print(lbWinnerName,'win(s) at LowBall!')
+
+    print('round over')
