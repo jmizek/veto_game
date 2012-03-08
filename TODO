@@ -1,0 +1,13 @@
+veto_game.py - TODO
+----------------------------------
+-Code could do with a refactoring already
+	-Make totals store values variables for each player that are calculated when the method is called?
+	-Likewise, make values and suits of each card fixed variables?
+
+-Implement the following
+	-Texas Hold'em High
+	-Texas Hold'em Low
+	-Veto system
+	-Ante system
+	-Betting system
+	-Division and distribution of winnings
