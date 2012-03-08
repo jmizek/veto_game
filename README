@@ -1,6 +1,12 @@
-veto_game.py
+veto_game.py - README
 ----------------------------------
 A simulation of a novel card game. A full description of the card game is
 yet to come. I aspire to make this game internet enabled eventually.
 
-Right now the game contains a working variation on blackjack.
+Right now the game contains a working variation on blackjack as well as a new
+ game called LowBall.
+ 
+The object of LowBall is to have the most cards without the total exceeding
+ 30. In the event that multiple players have the same number of cards, _then_
+ the totals are compared, with the lowest total winning. If there is still a
+ tie, then the tying players all win.
