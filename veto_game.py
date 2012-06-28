@@ -31,9 +31,28 @@ def value(cardNumber):
     return cardNumber%100
 def cardName(cardNumber):
     return values[value(cardNumber)]+' of '+suits[suit(cardNumber)]
+#return toAdd where toAdd has all values list3[i] for which (list1[i] and list2[i]) evaluates as true
+def andList(list1,list2,list3):
+    if len(list1) != len(list2) or len(list1) != len(list3):
+        print('error: Lists are of unequal length')
+        return
+    toAdd=[]
+    for i in range(len(list1)):
+        if list1[i] and list2[i]:
+            toAdd.append(list3[i])
+    return toAdd
+#return the entries in list1 that are not in list 2
+def diffList(list1,list2):
+    difference=[]
+    for i in range(len(list1)):
+        if list1[i] not in list2:
+            difference.append(list1[i])
+    return difference
 
-# all common stuff goes here
-class Game:
+#><><><><><><><#
+#  game class  #
+#><><><><><><><#
+class Game: # all common stuff goes here
     def __init__(self):
         self.initialChips=1000;
         self.ante=10;
@@ -47,24 +66,53 @@ class Game:
         #F F F T F => phase==turn
         #F F F F T => phase==river
         self.resetActiveGames()
+        self.resetVetos()
     def resetActiveGames(self):
         self.activeGames=['Holdem High','Holdem Low','BlackJack','LowBall']
+    def resetVetos(self):
+        self.vetos=[]
+        for all in self.activeGames: #[Holdem High,Holdem Low,BlackJack,LowBall]
+            self.vetos.append(0)
+    def castVeto(self, vote):
+        if vote<0 or vote>=len(self.activeGames):
+            print('error: vote is out of bounds',vote)
+            return
+        vetos[self.activeGames.index(vote)]+=1 #needs fixing almost assuredly
+    def resolveVotes(self):
+        topGames=[]
+        topVetos=0
+        for i in range(len(self.activeGames)):
+            if self.vetos[i]>topVetos:
+                topVetos=self.vetos[i]
+                topGames=[self.activeGames[i]]
+            elif self.vetos[i]==topVetos:
+                topGames.append(self.activeGames[i])
+        if topGames == self.activeGames: #might need to fix
+            return 'No game'
+        else:
+            self.activeGames=diffList(self.activeGames,topGames)
+            return topGames
+    
 
-# deck is a class consisting of a list of 52 cards,
-#  each of which is the value of a card per above,
-#  and an integer to act as the index (1-52)
+#><><><><><><><#
+#  deck class  #
+#><><><><><><><#
 class Deck:
     def __init__(self):
         self.shuffle()
     def shuffle(self):
         self.pile=[] #must completely rebuild deck
+        #first add all the cards to the deck
         for i in range(101,402,100): #101, 201, 301, 401
-            self.pile[0:0]=range(i, i+13, 1) #101-113
-        self.pile=random.sample(self.pile,52)
+            self.pile[0:0]=range(i, i+13, 1) #101-113, 201-213, 301-313, 401-413
+        #now randomly reorder them
+        self.pile=random.sample(self.pile,52) 
     def draw(self):
         return self.pile.pop()
-
-# player class
+    
+#><><><><><><><#
+# player class #
+#><><><><><><><#
 class Player:
     def __init__(self,ID,name):
         self.ID=ID
@@ -76,31 +124,36 @@ class Player:
     def subChips(self,minusChips):
         if minusChips>self.chips:
             print('error: not enough chips')
-            return
+            return False
         else:
             self.chips-=minusChips
+            return True
+    def fold(self):
+        self.isIn=False
     def reset(self):
         self.hits=[False,False,False,False,False] #flop flop flop turn river
-        self.cards=[]#own own [flop flop flop turn river]
-    def addCard(self,card):
-        self.cards.append(card)
+        self.cards=[] #own own [flop flop flop turn river]
+        self.isIn=True
+    def addCards(self,newCards):
+        self.cards.extend(newCards)
     def numberCards(self):
         return len(self.cards)
     def setHits(self,hitList):
         for i in range(len(self.hits)):
+            #set hit for entry i if either already hit OR specify hit  
             self.hits[i]=self.hits[i] or hitList[i]
     def getBJTotal(self):
         hasAce=False
-        total=[0]
+        totals=[0]
         for i in range(len(self.cards)):
             if value(self.cards[i])==1: #if ace
                 hasAce=True
-            total[0]+=min(value(self.cards[i]),10)
-        if hasAce and max(total) <= 11:
-            total.append(max(total)+10)
-        if min(total)>21: #if bust in blackjack
-            total=[0] #set to lowest value
-        return total
+            totals[0]+=min(value(self.cards[i]),10)
+        if hasAce and totals[0] <= 11:
+            totals.append(totals[0]+10)
+        if min(totals)>21: #if bust in blackjack
+            totals=[0] #set to lowest value
+        return totals
     def getLBTotal(self):
         subtotal=0
         total = [len(self.cards)]
@@ -110,7 +163,14 @@ class Player:
             total[0]=0 #set number of cards to lowest value
         total.append(subtotal) #update total to reflect changes
         return total
+    def getHoldemTotal(self,commonCards):
+        #create variable to house both own cards and all common cards
+        allCards=self.cards[0:1]+commonCards
+        total=[]
+        
+        
 
+##################################################################
 # begin actual code
 game=Game()
 deck=Deck()
@@ -131,8 +191,7 @@ while True:
     #deal cards
     for i in range(len(player)):
         player[i].reset()
-        player[i].addCard(deck.draw())
-        player[i].addCard(deck.draw())
+        player[i].addCards([deck.draw(),deck.draw()])
         print('Cards for',player[i].name)
         print('  ',cardName(player[i].cards[0]))
         print('  ',cardName(player[i].cards[1]))
@@ -152,8 +211,10 @@ while True:
         for i in range(len(game.activeCards)):
             if game.activeCards[i]:
                 game.common[i]=deck.draw()
-        #get hits
+        #get hits for each player
         for i in range(len(player)):
+            if not player[i].isIn:
+                break
             if 'flop' in game.phase:
                 print(player[i].name,'choose which cards to hit: [flop1] [flop2] [flop3]')
                 hits=input(' enter 1 and/or 2 and/or 3 to hit those cards: ')
@@ -170,12 +231,10 @@ while True:
         for i in range(len(game.activeCards)):
             if game.activeCards[i]:
                 print(game.phase,'card is',cardName(game.common[i]))
-        #add hit cards to hands
         for i in range(len(player)):
-            for j in range(len(game.activeCards)):
-                if game.activeCards[j] and player[i].hits[j]:
-                    player[i].addCard(game.common[j])
-            #get totals
+            #add hit cards to hands
+            player[i].addCards(andList(game.activeCards,player[i].hits,game.common))
+            #get totals for each player
             bjTotal=player[i].getBJTotal()
             lbTotal=player[i].getLBTotal()
             #show blackjack totals
