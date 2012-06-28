@@ -48,6 +48,9 @@ def diffList(list1,list2):
         if list1[i] not in list2:
             difference.append(list1[i])
     return difference
+#return winner for BJ given a list of the totals
+def BJWinner(totals):
+    return ###TODO
 
 #><><><><><><><#
 #  game class  #
@@ -129,11 +132,19 @@ class Player:
             self.chips-=minusChips
             return True
     def fold(self):
-        self.isIn=False
+        self.gamesIn=[]
     def reset(self):
         self.hits=[False,False,False,False,False] #flop flop flop turn river
         self.cards=[] #own own [flop flop flop turn river]
-        self.isIn=True
+        self.gamesIn=['Holdem High','Holdem Low','BlackJack','LowBall']
+    def isIn(self,activeGames):
+        #first order of business is to update games player is still in based on active games
+        newGamesIn=[]
+        for i in range(len(self.gamesIn)):
+            if self.gamesIn[i] in activeGames:
+                newGamesIn.append(self.gamesIn[i])
+        self.gamesIn=newGamesIn
+        return len(self.gamesIn)>0 #return true if still in any games
     def addCards(self,newCards):
         self.cards.extend(newCards)
     def numberCards(self):
@@ -153,6 +164,7 @@ class Player:
             totals.append(totals[0]+10)
         if min(totals)>21: #if bust in blackjack
             totals=[0] #set to lowest value
+            self.gamesIn=diffList(self.gamesIn,['BlackJack']) #and remove BJ from list
         return totals
     def getLBTotal(self):
         subtotal=0
@@ -161,6 +173,7 @@ class Player:
             subtotal+=min(value(self.cards[i]),10)
         if subtotal>30: #if bust in lowball
             total[0]=0 #set number of cards to lowest value
+            self.gamesIn=diffList(self.gamesIn,['LowBall']) #and remove LB from list
         total.append(subtotal) #update total to reflect changes
         return total
     def getHoldemTotal(self,commonCards):
@@ -195,6 +208,9 @@ while True:
         print('Cards for',player[i].name)
         print('  ',cardName(player[i].cards[0]))
         print('  ',cardName(player[i].cards[1]))
+    ##TEMP CODE
+    game.activeGames=diffList(game.activeGames,['Holdem High','Holdem Low'])
+    ##/TEMP CODE
     #begin rounds
     while 'done' not in game.phase:
         #burn a card
@@ -213,7 +229,11 @@ while True:
                 game.common[i]=deck.draw()
         #get hits for each player
         for i in range(len(player)):
-            if not player[i].isIn:
+            ##TEMP CODE
+            #print('Active games are: ',game.activeGames)
+            #print('Games player is in: ',player[i].gamesIn)
+            ##/TEMP CODE
+            if not player[i].isIn(game.activeGames):
                 break
             if 'flop' in game.phase:
                 print(player[i].name,'choose which cards to hit: [flop1] [flop2] [flop3]')
