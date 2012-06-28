@@ -209,7 +209,7 @@ while True:
         print('  ',cardName(player[i].cards[0]))
         print('  ',cardName(player[i].cards[1]))
     ##TEMP CODE
-    game.activeGames=diffList(game.activeGames,['Holdem High','Holdem Low'])
+    #game.activeGames=diffList(game.activeGames,['Holdem High','Holdem Low'])
     ##/TEMP CODE
     #begin rounds
     while 'done' not in game.phase:
@@ -233,7 +233,8 @@ while True:
             #print('Active games are: ',game.activeGames)
             #print('Games player is in: ',player[i].gamesIn)
             ##/TEMP CODE
-            if not player[i].isIn(game.activeGames):
+            #if the player is not in any active games besides holdem hi/lo, then skip player
+            if not player[i].isIn(diffList(game.activeGames,['Holdem High','Holdem Low'])):
                 break
             if 'flop' in game.phase:
                 print(player[i].name,'choose which cards to hit: [flop1] [flop2] [flop3]')
@@ -309,4 +310,6 @@ while True:
                     lbWinnerName.append(player[i].name)
         print(lbWinnerName,'win(s) at LowBall!')
 
-    print('round over')
+    print('Hand over')
+    if 'y' not in input(' Play another hand? y/n: '):
+        break
